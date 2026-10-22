@@ -283,7 +283,7 @@ def _o_sukhdei(ctx, ids):
         ctx.check("name, bank account and IFSC as spoken", (r[0][1], r[0][4], r[0][5]), ("Sukhdei Devi", "123456789012", "SBIN0003077"))
 
 
-_llm("sukhdei", [_sukhdei_says, "Haan, sab theek ba, arji bhej da."], _o_sukhdei)
+_llm("sukhdei", [_sukhdei_says, "Link se kagaz bhej dihli. Ab dekh la.", "Haan, sab bilkul theek ba, arji bhej da."], _o_sukhdei)
 
 
 def _o_ramnath(ctx, ids):
@@ -340,7 +340,8 @@ def _o_gulabo(ctx, ids):
 
 _llm("gulabo", ["I am Gulabo Devi. I applied before but I gave the village wrong as Sitapar. Please cancel that one and apply again "
                 "with the right village, Sitapur. Block Rajapara, born 05/05/1956, bank account 111122223333, IFSC SBIN0003077. "
-                "Yes, cancel the old one and file the new one, I confirm both."], _o_gulabo, _s_gulabo)
+                "Yes, cancel the old one and file the new one, I confirm both.",
+                "I have sent the document through the link. Everything you read back is correct, please file the new application."], _o_gulabo, _s_gulabo)
 
 
 def _o_munna(ctx, ids):
