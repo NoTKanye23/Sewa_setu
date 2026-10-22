@@ -32,7 +32,7 @@ a{color:inherit}
 <div class="bar">
  <div class="stat"><b>{{ run.passed }}/{{ run.total }}</b>personas passed</div>
  <div class="stat"><b>{{ checks_ok }}/{{ checks_all }}</b>database checks</div>
- <div class="stat"><b>{{ run.mode }}</b>mode</div>
+ <div class="stat"><b>{{ run.mode }}</b>who played the assistant</div>
  <div class="stat"><b>{{ run.revision }}</b>code revision</div>
 </div>
 <p class="mute">Run {{ run.id }} finished {{ run.finished }} IST against {{ run.target }}. <a href="?run={{ run.id }}&format=json">JSON</a></p>
@@ -40,13 +40,13 @@ a{color:inherit}
 <section class="card" id="{{ r.persona_id }}"><div class="head"><div><h2>{{ r.profile.name }}</h2>
 <span class="mute">{{ r.profile.role }}, age {{ r.profile.age }}, {{ r.profile.village }} ({{ r.profile.block }})</span></div>
 <span class="pill {{ 'pass' if r.passed else 'fail' }}">{{ 'PASS' if r.passed else 'FAIL' }} {{ r.n_ok }}/{{ r.checks|length }}</span></div>
-<dl><dt>How they talk</dt><dd>{{ r.profile.voice }}</dd><dt>What they want</dt><dd>{{ r.profile.wants }}</dd><dt>Must be true afterwards</dt><dd>{{ r.profile.must_be_true }}</dd></dl>
+<dl>{% if r.profile.said %}<dt>What they said</dt><dd>{% for l in r.profile.said %}“{{ l }}”<br>{% endfor %}</dd>{% endif %}<dt>How they talk</dt><dd>{{ r.profile.voice }}</dd><dt>What they want</dt><dd>{{ r.profile.wants }}</dd><dt>Must be true afterwards</dt><dd>{{ r.profile.must_be_true }}</dd></dl>
 {% if r.error %}<p class="x">Run error: {{ r.error }}</p>{% endif %}
 <table><tr><th>Checked</th><th>Expected</th><th>Found</th><th></th></tr>
 {% for c in r.checks %}<tr><td>{{ c.name }}</td><td>{{ c.expected }}</td><td>{{ c.actual }}</td><td class="{{ '' if c.passed else 'x' }}">{{ '✓' if c.passed else '✗' }}</td></tr>{% endfor %}</table>
 <details><summary>Conversation with the tools ({{ r.transcript|length }} calls)</summary>
-{% for t in r.transcript %}<pre>{{ t.tool }}({{ t.args|tojson }})
-→ {{ t.result|tojson(indent=1) }}</pre>{% endfor %}</details></section>
+{% for t in r.transcript %}{% if t.say and t.say.startswith('PERSON: ') %}<pre><b>Person:</b> {{ t.say[8:] }}</pre>{% elif t.say %}<pre><b>Assistant:</b> {{ t.say }}</pre>{% else %}<pre>{{ t.tool }}({{ t.args|tojson }})
+→ {{ t.result|tojson(indent=1) }}</pre>{% endif %}{% endfor %}</details></section>
 {% endfor %}
 <h2 style="margin-top:28px">History</h2>
 <table><tr><th>Run</th><th>Finished (IST)</th><th>Revision</th><th>Passed</th></tr>

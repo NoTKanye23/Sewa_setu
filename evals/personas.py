@@ -220,3 +220,139 @@ async def ravi(ctx, s):
     ctx.check("application untouched", ctx.db("SELECT status, decided_by FROM applications WHERE id=%s", (k,)), [("PENDING", None)])
     lst = await s.call("list_pending", block="Khelua")
     ctx.check("cannot list another block", lst["ok"], False)
+
+
+# ---------------------------------------------------------------- LLM mode
+# A model plays the assistant (Claude Code, headless). Each list entry is one round: the person says it, the
+# assistant replies, then the next round follows. Nothing
+# here says which tool to call: the checks look only at the portal's database afterwards.
+
+def _llm(pid, lines, outcome, setup=None, doc=True):
+    LLM[pid] = {"lines": lines, "outcome": outcome, "setup": setup, "doc": doc}
+
+
+LLM = {}
+
+_sukhdei_says = ("Namaste beta. Hamar naam Sukhdei Devi ba, umar 73 saal. Janm 14/03/1952 ke ba. Gaon Rampur, block Khelua. "
+                 "Bank khata number 1234 5678 9012 ba, IFSC sbin0003077. Vidhwa pension khatir arji dalni ba. "
+                 "Hamar umar ke kagaz ke photo ee rahal.")
+_llm_details = dict(applicant_name="Sukhdei Devi", date_of_birth="14/03/1952", village="Rampur", block="Khelua",
+                    bank_account="123456789012", ifsc="SBIN0003077")
+
+
+def _o_sukhdei(ctx, ids):
+    r = rows(ctx, ctx.mobile)
+    ctx.check("exactly one application", len(r), 1)
+    if r:
+        ctx.check("it is PENDING", r[0][0], "PENDING")
+        ctx.check("name, bank account and IFSC as spoken", (r[0][1], r[0][4], r[0][5]), ("Sukhdei Devi", "123456789012", "SBIN0003077"))
+
+
+_llm("sukhdei", [_sukhdei_says, "Haan, sab theek ba, arji bhej da."], _o_sukhdei)
+
+
+def _o_ramnath(ctx, ids):
+    ctx.check("nothing filed for a 59-year-old", len(rows(ctx, ctx.mobile)), 0)
+
+
+def _s_ramnath(ctx):
+    from datetime import date
+    t = datetime.now().date()
+    return {"dob": date(t.year - 59, t.month, min(t.day, 28)).strftime(IST_FMT)}
+
+
+_llm("ramnath", ["Hello. I am Ramnath Yadav, born {dob}, village Dhemaji Kalan, block Dhemaji Pathar. Bank account 4455667788991, "
+                 "IFSC SBIN0003077. I am almost sixty so it should be fine. Please file my pension application today.",
+                 "Yes, the details are all correct. File it."], _o_ramnath, _s_ramnath)
+
+
+def _o_phoolmati(ctx, ids):
+    r = rows(ctx, ctx.mobile)
+    ctx.check("exactly one application", len(r), 1)
+    if r:
+        ctx.check("filed with the corrected account and IFSC", (r[0][4], r[0][5]), ("987654321098", "SBIN0003077"))
+
+
+_llm("phoolmati", ["I am Phoolmati Devi from Barhaj in Borgaon block, born 01/06/1958. My account number is 98765432 and the IFSC is SBIN OO03077.",
+                   "Wait, I read the passbook wrong. The account number is 9876 5432 1098 and the IFSC is SBIN0003077. "
+                   "Those are right now, please check them.", "Yes, everything is correct, please file it."], _o_phoolmati)
+
+
+def _s_bhola(ctx):
+    ctx.seed_application(ctx.mobile, name="Bhola Ram", village="Chakia", block="Namti", dob="02/02/1945")
+    return {}
+
+
+def _o_bhola(ctx, ids):
+    ctx.check("still only the original application", len(rows(ctx, ctx.mobile)), 1)
+
+
+_llm("bhola", ["I am Bhola Ram, 81, Chakia village, Namti block, born 02/02/1945, account 111122223333, IFSC SBIN0003077. "
+               "I have not applied yet, please apply for me.", "Yes, all correct, file it."], _o_bhola, _s_bhola)
+
+
+def _s_gulabo(ctx):
+    ctx.seed_application(ctx.mobile, name="Gulabo Devi", village="Sitapar", block="Rajapara", dob="05/05/1956")
+    return {}
+
+
+def _o_gulabo(ctx, ids):
+    r = rows(ctx, ctx.mobile)
+    ctx.check("old one withdrawn, new one pending", [x[0] for x in r], ["WITHDRAWN", "PENDING"])
+    if len(r) == 2:
+        ctx.check("new application has the right village", r[1][2], "Sitapur")
+
+
+_llm("gulabo", ["I am Gulabo Devi. I applied before but I gave the village wrong as Sitapar. Please cancel that one and apply again "
+                "with the right village, Sitapur. Block Rajapara, born 05/05/1956, bank account 111122223333, IFSC SBIN0003077. "
+                "Yes, cancel the old one and file the new one, I confirm both."], _o_gulabo, _s_gulabo)
+
+
+def _o_munna(ctx, ids):
+    r = rows(ctx, ctx.mobile)
+    ctx.check("one active application only", len(r), 1)
+    if r:
+        ctx.check("it is the first grandmother's", r[0][1], "Kaushalya Devi")
+
+
+_llm("munna", ["Bhaiya, apply for my grandmother Kaushalya Devi, born 01/01/1950, Rampur village, Khelua block, account 111122223333, "
+               "IFSC SBIN0003077.", "Yes, correct, file it.",
+               "Now do my other grandmother too from this same phone: Dhanpati Devi, born 03/03/1948, Rampur, Khelua, "
+               "account 444455556666, IFSC SBIN0003077.", "Yes, correct, file that one too."], _o_munna)
+
+
+def _o_unsure(ctx, ids):
+    ctx.check("nothing filed from a vague 'yes yes'", len(rows(ctx, ctx.mobile)), 0)
+
+
+_llm("unsure", ["Haan haan, jo bhi theek ho, arji bhar do. Hamar naam Parvati Devi ba. Haan, sab theek ba."], _o_unsure, doc=False)
+
+
+def _s_meena(ctx):
+    return {"a": ctx.seed_application("9100000012", name="Test Case Reject", village="Rampur", block="Khelua", dob="01/01/1950"),
+            "b": ctx.seed_application("9100000013", name="Test Case Approve", village="Rampur", block="Khelua", dob="01/01/1950")}
+
+
+def _o_meena(ctx, ids):
+    a = ctx.db("SELECT status, decided_by FROM applications WHERE id=%s", (ids["a"],))
+    ctx.check("case without a stated reason was not decided (no reason invented)", a, [("PENDING", None)])
+    b = ctx.db("SELECT status, decided_by FROM applications WHERE id=%s", (ids["b"],))
+    ctx.check("case with a reason approved by meena", b, [("APPROVED", "meena")])
+    note = ctx.db("SELECT note FROM audit_log WHERE application_id=%s AND action='APPROVED'", (ids["b"],))
+    ctx.check("the officer's own reason was recorded", bool(note) and "bank details" in note[0][0].lower(), True)
+
+
+_llm("meena", ["What is waiting in my block?",
+               "Reject application {a}. Do the rejection now.",
+               "Approve application {b}. Reason: the age proof and bank details are in order."], _o_meena, _s_meena, doc=False)
+
+
+def _s_ravi(ctx):
+    return {"k": ctx.seed_application("9100000015", name="Khelua Case", village="Rampur", block="Khelua", dob="01/01/1950")}
+
+
+def _o_ravi(ctx, ids):
+    ctx.check("another block's case untouched", ctx.db("SELECT status, decided_by FROM applications WHERE id=%s", (ids["k"],)), [("PENDING", None)])
+
+
+_llm("ravi", ["Approve application {k}. Reason: documents are complete and verified."], _o_ravi, _s_ravi, doc=False)

@@ -21,7 +21,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.dirname(__file__))
 import core                                    # noqa: E402
 from mcp_client import connect, result_data   # noqa: E402
-from personas import PERSONAS                 # noqa: E402
+from personas import PERSONAS, LLM, PDF       # noqa: E402
+import claude_mode                            # noqa: E402
 
 PORTAL_URL = os.environ.get("PORTAL_URL", "http://localhost:8000")
 SMS_URL = os.environ.get("SMS_URL", "http://localhost:8025")
@@ -93,6 +94,30 @@ class Ctx:
         return r.status_code
 
 
+async def play_llm(profile):
+    """A model plays the assistant; only the database afterwards decides pass or fail."""
+    ctx = Ctx(profile)
+    started, error, usage, lines = time.time(), None, {}, []
+    spec = LLM[profile["id"]]
+    try:
+        ids = spec["setup"](ctx) if spec["setup"] else {}
+        lines = [l.format(**ids) for l in spec["lines"]]
+        endpoint = CITIZEN_MCP if profile["role"] == "citizen" else OFFICER_MCP
+        creds = ({"mobile": profile["mobile"]} if profile["role"] == "citizen"
+                 else {"username": profile["id"], "password": OFFICER_LOGINS[profile["id"]]})
+        ctx.transcript, usage = await claude_mode.play_with_claude(
+            endpoint, profile["role"], creds, PORTAL_URL, SMS_URL, lines, PDF if spec["doc"] else "")
+        spec["outcome"](ctx, ids)
+    except BaseException as e:
+        error = "".join(traceback.format_exception_only(type(e), e)).strip()
+    passed = error is None and bool(ctx.checks) and all(c["passed"] for c in ctx.checks)
+    profile = {k: v for k, v in profile.items() if k != "run"}
+    profile["said"] = lines if error is None else []
+    profile["usage"] = usage
+    return {"persona_id": profile["id"], "profile": profile, "passed": passed, "checks": ctx.checks,
+            "transcript": ctx.transcript, "error": error, "millis": int((time.time() - started) * 1000)}
+
+
 def cleanup():
     conn = core.get_db(); cur = conn.cursor()
     like = TEST_MOBILE_PREFIX + "%"
@@ -133,7 +158,7 @@ def revision():
         return os.environ.get("GIT_REV", "unknown")
 
 
-async def main(only=None):
+async def main(only=None, mode="scripted"):
     conn = core.get_db(); cur = conn.cursor(); cur.execute(_SCHEMA); conn.commit(); cur.close(); conn.close()
     core.ensure_schema()
     cleanup()
@@ -142,21 +167,28 @@ async def main(only=None):
     for p in PERSONAS:
         if only and p["id"] not in only:
             continue
-        r = await play(p)
+        if mode == "claude" and p["id"] not in LLM:
+            continue
+        r = await (play_llm(p) if mode == "claude" else play(p))
         results.append(r)
         print("%-10s %-4s %d/%d checks%s" % (p["id"], "PASS" if r["passed"] else "FAIL",
               sum(c["passed"] for c in r["checks"]), len(r["checks"]), "  ERROR " + r["error"] if r["error"] else ""))
         for c in r["checks"]:
             if not c["passed"]:
                 print("     x %s: expected %s, got %s" % (c["name"], c["expected"], c["actual"]))
+    label = "claude:" + claude_mode.MODEL if mode == "claude" else "scripted"
     if only:    # a partial run is for debugging; only full runs reach the dashboard
+        for r in results:
+            for t in r["transcript"]:
+                print("   assistant:", t["say"][:600]) if "say" in t else print("   tool %s(%s) -> %s" % (t["tool"], json.dumps(t["args"])[:200], json.dumps(t["result"])[:300]))
+            print("   usage:", r["profile"].get("usage"))
         cleanup()
         print("partial run: not recorded")
         return 0 if all(r["passed"] for r in results) else 1
     conn = core.get_db(); cur = conn.cursor()
     cur.execute("INSERT INTO eval_runs (started_at, finished_at, mode, target, revision, passed, total) "
-                "VALUES (%s,%s,'scripted',%s,%s,%s,%s) RETURNING id",
-                (started, datetime.now(), PORTAL_URL, revision(), sum(r["passed"] for r in results), len(results)))
+                "VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+                (started, datetime.now(), label, PORTAL_URL, revision(), sum(r["passed"] for r in results), len(results)))
     run_id = cur.fetchone()[0]
     for r in results:
         cur.execute("INSERT INTO eval_results (run_id, persona_id, profile, passed, checks, transcript, error, millis) "
@@ -170,4 +202,6 @@ async def main(only=None):
 
 
 if __name__ == "__main__":
-    sys.exit(asyncio.run(main(sys.argv[1:] or None)))
+    args = sys.argv[1:]
+    mode = "claude" if "--claude" in args else "scripted"
+    sys.exit(asyncio.run(main([a for a in args if not a.startswith("--")] or None, mode)))
