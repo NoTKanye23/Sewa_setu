@@ -208,7 +208,7 @@ async def nodoc(ctx, s):
 
 
 def core_base():
-    return os.environ.get("PUBLIC_BASE_URL", "http://localhost:8000").rstrip("/")
+    return (os.environ.get("PORTAL_URL") or os.environ.get("PUBLIC_BASE_URL") or "http://localhost:8000").rstrip("/")
 
 
 # ---------------------------------------------------------------- officers
