@@ -87,6 +87,12 @@ class Ctx:
             "bank_account": "111122223333", "ifsc": "SBIN0003077", "gender": "Female"}, "/seed/age_proof.pdf")
         return app_id
 
+    async def upload_status(self, url, filename, content):
+        """What the upload page answers when a person submits a file through the link."""
+        async with httpx.AsyncClient(follow_redirects=True) as c:
+            r = await c.post(url, files={"document": (filename, content)})
+        return r.status_code
+
     async def raw_post(self, url, token):
         async with httpx.AsyncClient() as c:
             r = await c.post(url, headers={"Authorization": "Bearer " + token, "Accept": "application/json, text/event-stream"},

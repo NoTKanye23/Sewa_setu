@@ -15,6 +15,7 @@ from mcp.server.auth.settings import AuthSettings
 import core
 from auth import PortalTokenVerifier, PUBLIC_BASE_URL, current
 from common import ist, ist_date, mask_account, deemed_on, clean_choice, serve
+from auth import PUBLIC_BASE_URL as _BASE
 
 RESOURCE_URL = os.environ.get("RESOURCE_URL") or PUBLIC_BASE_URL + "/mcp/citizen"
 
@@ -34,7 +35,9 @@ a real calendar date (DD/MM/YYYY); if someone gives an age or a festival or an I
 date, ask for the date of birth on the age proof document instead.
 - Before submitting, read every detail back and get a clear yes. Only then call submit_application \
 with confirmed_by_applicant=true.
-- The age proof is stored as received. You cannot check it, so never say it is verified or valid.
+- The age proof is the person's own document. Never create, guess or make up document content. To get it, call \
+get_age_proof_upload_link and give the person the link to open themselves; later call check_age_proof_status to see \
+that it arrived. It is stored as received. You cannot check it, so never say it is verified or valid.
 - If a tool says something is not allowed (too young, window closed, already applied), explain it \
 plainly and kindly. Do not look for a way around it.
 - All times are Indian Standard Time.
@@ -125,10 +128,31 @@ def _fields(applicant_name, date_of_birth, village, block, bank_account, ifsc,
 
 
 @mcp.tool()
+def get_age_proof_upload_link() -> dict:
+    """Get a short-lived web link where the PERSON uploads a photo or PDF of their age proof
+    themselves (JPG, PNG or PDF, up to 5 MB). Give them the link and ask them to open it on their phone.
+    Prefer this over attach_age_proof. Afterwards call check_age_proof_status."""
+    token = core.make_upload_token(current().identity)
+    return {"ok": True, "upload_link": "%s/upload-proof/%s" % (_BASE, token), "valid_for_minutes": core.UPLOAD_LINK_TTL // 60,
+            "tell_the_person": "Open this link, choose the photo or PDF of your age proof, and press Send. Then come back here."}
+
+
+@mcp.tool()
+def check_age_proof_status() -> dict:
+    """Whether an age proof document has arrived for this person's next application (via the upload link).
+    It only says a file was received, never that it is valid."""
+    info = core.pending_document_info(current().identity)
+    if not info:
+        return {"ok": True, "received": False, "message": "No age proof has been received yet."}
+    return {"ok": True, "received": True, "file": info[0], "received_at": ist(info[1]),
+            "message": "A document was received. It has not been checked."}
+
+
+@mcp.tool()
 def attach_age_proof(filename: str, content_base64: str) -> dict:
-    """Store the applicant's age proof document (JPG, PNG or PDF, up to 5 MB) so it can be
-    submitted with the application. `content_base64` is the file's bytes, base64 encoded.
-    The document is kept exactly as received: this tool does not and cannot check it."""
+    """Only for a client that really holds the person's document file: store it (JPG, PNG or PDF, up to 5 MB).
+    `content_base64` must be the real file's bytes, base64 encoded. NEVER invent or guess content: if you do not
+    have the actual file, use get_age_proof_upload_link instead. The document is kept as received and not checked."""
     mobile = current().identity
     try:
         content = base64.b64decode(content_base64, validate=False)

@@ -10,6 +10,8 @@ Functions that change data take a cursor and leave the commit to the caller, exc
 
 import os
 import re
+import hmac
+import time
 import random
 import hashlib
 import logging
@@ -380,6 +382,43 @@ def pending_document(mobile):
     row = cur.fetchone()
     cur.close(); conn.close()
     return row[0] if row else ""
+
+
+UPLOAD_LINK_TTL = 20 * 60
+
+
+def _upload_secret():
+    return (os.environ.get("UPLOAD_LINK_SECRET") or config.get("app", "secret_key")).encode()
+
+
+def make_upload_token(mobile, ttl=UPLOAD_LINK_TTL):
+    """A bearer token that lets whoever holds it upload one age-proof file for this mobile, for a short while."""
+    body = "%s.%d" % (mobile, int(time.time()) + ttl)
+    sig = hmac.new(_upload_secret(), body.encode(), hashlib.sha256).hexdigest()[:32]
+    return body + "." + sig
+
+
+def mobile_from_upload_token(token):
+    """The mobile a valid, unexpired upload token was issued for, else None."""
+    try:
+        mobile, exp, sig = token.split(".")
+        good = hmac.new(_upload_secret(), ("%s.%s" % (mobile, exp)).encode(), hashlib.sha256).hexdigest()[:32]
+        if hmac.compare_digest(sig, good) and int(exp) > time.time() and mobile.isdigit():
+            return mobile
+    except (ValueError, AttributeError):
+        pass
+    return None
+
+
+def pending_document_info(mobile):
+    """(file name, uploaded_at) of the age proof waiting for this mobile, or None."""
+    ensure_schema()
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT doc_path, uploaded_at FROM assistant_documents WHERE mobile = %s", (mobile,))
+    row = cur.fetchone()
+    cur.close(); conn.close()
+    return (os.path.basename(row[0]), row[1]) if row else None
 
 
 # ---------------------------------------------------------------------------

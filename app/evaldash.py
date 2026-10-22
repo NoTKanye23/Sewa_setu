@@ -35,6 +35,7 @@ a{color:inherit}
  <div class="stat"><b>{{ run.mode }}</b>who played the assistant</div>
  <div class="stat"><b>{{ run.revision }}</b>code revision</div>
 </div>
+<p class="mute">Show the latest: <a href="?mode=scripted">scripted run</a> · <a href="?mode=claude">run with Claude Code as the assistant</a></p>
 <p class="mute">Run {{ run.id }} finished {{ run.finished }} IST against {{ run.target }}. <a href="?run={{ run.id }}&format=json">JSON</a></p>
 {% for r in results %}
 <section class="card" id="{{ r.persona_id }}"><div class="head"><div><h2>{{ r.profile.name }}</h2>
@@ -67,8 +68,10 @@ def dashboard():
         cur.close(); conn.close()
         return render_template_string(PAGE, run=None)
     want = request.args.get("run", type=int)
+    mode = request.args.get("mode", "")          # "scripted" or "claude": the latest run of that kind
     cur.execute("SELECT id, finished_at, mode, target, revision, passed, total FROM eval_runs "
-                "WHERE (%s IS NULL OR id = %s) ORDER BY id DESC LIMIT 1", (want, want))
+                "WHERE (%s IS NULL OR id = %s) AND (%s = '' OR mode LIKE %s) ORDER BY id DESC LIMIT 1",
+                (want, want, mode, mode + "%"))
     row = cur.fetchone()
     if not row:
         cur.close(); conn.close()
