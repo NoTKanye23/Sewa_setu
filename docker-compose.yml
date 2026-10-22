@@ -1,5 +1,6 @@
 services:
   db:
+    restart: unless-stopped
     image: postgres:15
     environment:
       POSTGRES_DB: sewasetu
@@ -11,6 +12,7 @@ services:
       - ./seed/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
 
   app:
+    restart: unless-stopped
     build: ./app
     ports:
       - "8000:8000"
@@ -30,6 +32,7 @@ services:
       - applogs:/var/log/sewasetu
 
   citizen-mcp:
+    restart: unless-stopped
     build: {context: ., dockerfile: mcp_service/Dockerfile}
     command: ["python", "citizen_server.py"]
     environment: &mcp_env
@@ -41,6 +44,7 @@ services:
       - uploads:/var/sewasetu/uploads
 
   officer-mcp:
+    restart: unless-stopped
     build: {context: ., dockerfile: mcp_service/Dockerfile}
     command: ["python", "officer_server.py"]
     environment:
@@ -51,6 +55,7 @@ services:
       - uploads:/var/sewasetu/uploads
 
   caddy:
+    restart: unless-stopped
     image: caddy:2
     ports:
       - "80:80"
@@ -78,6 +83,7 @@ services:
       - uploads:/var/sewasetu/uploads
 
   scheduler:
+    restart: unless-stopped
     build: ./app
     # Run the deemed-approval job once at startup (so a freshly restored
     # database is brought up to date), then hand over to cron for the nightly run.
@@ -88,6 +94,7 @@ services:
       - applogs:/var/log/sewasetu
 
   smsgw:
+    restart: unless-stopped
     build: ./smsgw
     # internal only — reached by the app over the docker network and exposed to
     # users via the app at /__gateway/ (so no second host port is needed)
