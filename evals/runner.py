@@ -84,7 +84,7 @@ class Ctx:
         core.ensure_schema()
         app_id, _ = core.submit_application_tx(mobile, {
             "applicant_name": name, "village": village, "block": block, "dob": dob,
-            "bank_account": "111122223333", "ifsc": "SBIN0003077", "gender": "Female"}, "/seed/age_proof.pdf")
+            "bank_account": mobile[-10:] + "00", "ifsc": "SBIN0003077", "gender": "Female"}, "/seed/age_proof.pdf")
         return app_id
 
     async def upload_status(self, url, filename, content):

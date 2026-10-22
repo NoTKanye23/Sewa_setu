@@ -7,8 +7,11 @@ import os
 import json
 import shutil
 import asyncio
+import base64
 import tempfile
 import subprocess
+
+import httpx
 
 from mcp_client import connect
 
@@ -84,6 +87,13 @@ async def play_with_claude(endpoint, scope, creds, portal_url, sms_url, lines, p
             proc = await asyncio.to_thread(subprocess.run, cmd, cwd=work, capture_output=True, text=True, timeout=420)
             part, u = _parse(proc.stdout)
             transcript += part
+            # the person opens an upload link when the assistant gives one (a model cannot do that for them)
+            for t in part:
+                link = (t.get("result") or {}).get("upload_link") if isinstance(t.get("result"), dict) else None
+                if link and pdf_b64:
+                    async with httpx.AsyncClient(follow_redirects=True) as c:
+                        r = await c.post(link, files={"document": ("age_proof.pdf", base64.b64decode(pdf_b64))})
+                    transcript.append({"say": "PERSON: (opened the link on their phone and uploaded the document: HTTP %d)" % r.status_code})
             usage["turns"] += u.get("turns") or 0
             usage["cost_usd"] += u.get("cost_usd") or 0
             session_id = u.get("session_id") or session_id
