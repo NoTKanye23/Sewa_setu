@@ -386,8 +386,16 @@ def login():
                     _update_request(rid, pending_mobile=mobile)
                     req["pending_mobile"] = mobile
         else:
-            if (portal.ADMIN_PASSWORD and request.form.get("username") == portal.ADMIN_USERNAME and
-                    request.form.get("password") == portal.ADMIN_PASSWORD):
+            username = request.form.get("username", "").strip()
+            password = request.form.get("password", "")
+            # each officer signs in under their own name, so a decision can be recorded against it;
+            # the shared admin login still works and is recorded as officer:admin
+            officer = portal.core.officer_for_login(username, password) if username and password else None
+            if officer:
+                _update_request(rid, subject="officer:" + officer[0])
+                return redirect(url_for("oauth.consent", rid=rid))
+            if (portal.ADMIN_PASSWORD and username == portal.ADMIN_USERNAME and
+                    password == portal.ADMIN_PASSWORD):
                 _update_request(rid, subject="officer:" + portal.ADMIN_USERNAME)
                 return redirect(url_for("oauth.consent", rid=rid))
             flash("Invalid credentials.")
