@@ -65,6 +65,8 @@ services:
   evals:
     build: {context: ., dockerfile: evals/Dockerfile}
     profiles: ["evals"]       # docker compose run --rm evals
+    # share caddy's network so PUBLIC_BASE_URL (even http://localhost) reaches the real front door
+    network_mode: "service:caddy"
     environment:
       PORTAL_URL: ${PUBLIC_BASE_URL:-http://localhost:8000}
       SMS_URL: http://smsgw:8025
