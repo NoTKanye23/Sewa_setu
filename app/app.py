@@ -494,6 +494,9 @@ def admin_reject(app_id):
 from oauth import oauth as _oauth_blueprint   # noqa: E402  (needs the definitions above)
 app.register_blueprint(_oauth_blueprint)
 
+from evaldash import evaldash as _evaldash_blueprint   # noqa: E402
+app.register_blueprint(_evaldash_blueprint)
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=False)

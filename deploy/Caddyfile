@@ -1,0 +1,15 @@
+# TLS is automatic when SITE_ADDRESS is a real domain, e.g. sewasetu.example.in
+{$SITE_ADDRESS::80} {
+	# each assistant is its own service; a citizen's endpoint never serves officer tools
+	@citizen path /mcp/citizen /.well-known/oauth-protected-resource/mcp/citizen
+	handle @citizen {
+		reverse_proxy citizen-mcp:8001
+	}
+	@officer path /mcp/officer /.well-known/oauth-protected-resource/mcp/officer
+	handle @officer {
+		reverse_proxy officer-mcp:8002
+	}
+	handle {
+		reverse_proxy app:8000
+	}
+}

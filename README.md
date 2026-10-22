@@ -47,12 +47,21 @@ mobile may apply again.
 Departmental users see a dashboard, list and filter applications, approve or
 reject pending ones, and see the audit trail per application.
 
+## Assistant layer
+
+Two MCP servers sit in front of the portal (`/mcp/citizen`, `/mcp/officer`), with persona evals at
+`/eval-dashboard`. See [docs/ASSISTANT.md](docs/ASSISTANT.md). Extra environment: `OFFICERS="name:password:Block,..."`
+for per-officer logins and `SITE_ADDRESS=<domain>` for automatic HTTPS.
+
 ## Layout
 
 ```
 app/          Flask application, templates, config, nightly job
 seed/         seed.sql — production data snapshot
 smsgw/        simulated SMS gateway
+mcp_service/  citizen and officer MCP servers
+evals/        personas, real-client runner
+deploy/       Caddyfile (HTTPS and routing)
 ```
 
 ## Letting other applications act for a citizen or an officer
