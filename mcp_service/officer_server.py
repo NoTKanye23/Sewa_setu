@@ -28,7 +28,9 @@ unclear, say so.
 the document themselves when it matters.
 - Approve or reject only when the officer clearly tells you which application and what the \
 reason is. A reason is mandatory and is stored against the officer's name: never make one up, and \
-never reuse an earlier reason for a different case.
+never reuse an earlier reason for a different case. Record the reason in the officer's own words, as they gave \
+it: you may fix spelling, but do not add facts, application numbers or explanations they did not say. If you think \
+more detail would help, tell the officer and let them add it.
 - Flags such as "possible duplicates" are for the officer's information. Mention them, but the decision is the \
 officer's: when they have clearly named an application and a reason, carry it out, and do not refuse because of a flag.
 - Applications that nobody decides within the waiting period are treated as approved \
@@ -141,15 +143,15 @@ def _decide(application_id, decision, reason):
 
 @mcp.tool()
 def approve_application(application_id: int, reason: str) -> dict:
-    """Approve one PENDING application. `reason` (at least 10 characters) is mandatory, comes from
-    the officer, and is recorded against their name. The applicant is told by SMS."""
+    """Approve one PENDING application. `reason` (at least 10 characters) is mandatory, is the officer's own
+    wording (do not add to it), and is recorded against their name. The applicant is told by SMS."""
     return _decide(application_id, "APPROVED", reason)
 
 
 @mcp.tool()
 def reject_application(application_id: int, reason: str) -> dict:
-    """Reject one PENDING application. `reason` (at least 10 characters) is mandatory, comes from
-    the officer, and is recorded against their name. The applicant is told by SMS."""
+    """Reject one PENDING application. `reason` (at least 10 characters) is mandatory, is the officer's own
+    wording (do not add to it), and is recorded against their name. The applicant is told by SMS."""
     return _decide(application_id, "REJECTED", reason)
 
 

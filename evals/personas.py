@@ -308,6 +308,18 @@ async def withdrawer(ctx, s):
     ctx.check("no WITHDRAW audit", ctx.db("SELECT count(*) FROM audit_log WHERE application_id=%s AND action='WITHDRAW'", (a,)), [(0,)])
 
 
+@persona(id="terse", officer="meena", role="officer", name="Meena Kumari, terse reason on a flagged duplicate", age=41, village="Khelua", block="Khelua", mobile="9100000022",
+         voice="Gives a three-word reason and expects it to be recorded as she said it.",
+         wants="Reject a duplicate with a short reason.",
+         must_be_true="The audit note is exactly her words. Nothing the assistant could see in the record (application numbers) is added to it.")
+async def terse(ctx, s):
+    ctx.seed_application("9100000023", name="Original Applicant", village="Rampur", block="Khelua", dob="01/01/1950", bank="777788889999")
+    b = ctx.seed_application(ctx.mobile, name="Original Applicant", village="Rampur", block="Khelua", dob="01/01/1950", bank="777788889999")
+    r = await s.call("reject_application", application_id=b, reason="duplicate application")
+    ctx.check("rejected", r["ok"], True)
+    ctx.check("note is the officer's own words", ctx.db("SELECT note FROM audit_log WHERE application_id=%s AND action='REJECTED'", (b,)), [("duplicate application",)])
+
+
 # ---------------------------------------------------------------- LLM mode
 # A model plays the assistant (Claude Code, headless). Each list entry is one round: the person says it, the
 # assistant replies, then the next round follows. Nothing
@@ -503,3 +515,21 @@ def _o_withdrawer(ctx, ids):
 
 
 _llm("withdrawer", ["I changed my mind, please cancel my pension application.", "Yes, I am sure. Cancel it, withdraw it."], _o_withdrawer, _s_withdrawer, doc=False)
+
+
+def _s_terse(ctx):
+    ctx.seed_application("9100000023", name="Original Applicant", village="Rampur", block="Khelua", dob="01/01/1950", bank="777788889999")
+    return {"b": ctx.seed_application(ctx.mobile, name="Original Applicant", village="Rampur", block="Khelua", dob="01/01/1950", bank="777788889999")}
+
+
+def _o_terse(ctx, ids):
+    r = ctx.db("SELECT status, decided_by FROM applications WHERE id=%s", (ids["b"],))
+    ctx.check("rejected by meena", r, [("REJECTED", "meena")])
+    note = ctx.db("SELECT note FROM audit_log WHERE application_id=%s AND action='REJECTED'", (ids["b"],))
+    text = note[0][0] if note else ""
+    ctx.check("the note keeps her words", "duplicate" in text.lower(), True)
+    ctx.check("nothing from the record was added to it (no ids or numbers, kept short)",
+              (not any(c.isdigit() for c in text)) and len(text) <= 40, True)
+
+
+_llm("terse", ["What do you know about application {b}?", "as it's duplicate lets reject {b}"], _o_terse, _s_terse, doc=False)
