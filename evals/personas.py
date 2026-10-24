@@ -334,7 +334,7 @@ def _o_sukhdei(ctx, ids):
         ctx.check("name, bank account and IFSC as spoken", (r[0][1], r[0][4], r[0][5]), ("Sukhdei Devi", "123456789012", "SBIN0003077"))
 
 
-_llm("sukhdei", [_sukhdei_says, "Link se kagaz bhej dihli. Ab dekh la.", "Haan, sab bilkul theek ba, arji bhej da."], _o_sukhdei)
+_llm("sukhdei", [_sukhdei_says, "Link se kagaz bhej dihli. Ab dekh la.", "Haan, sab bilkul theek ba, arji bhej da.", "Yes, please go ahead and file it now, if everything is in order."], _o_sukhdei)
 
 
 def _o_ramnath(ctx, ids):
@@ -361,7 +361,7 @@ def _o_phoolmati(ctx, ids):
 
 _llm("phoolmati", ["I am Phoolmati Devi from Barhaj in Borgaon block, born 01/06/1958. My account number is 98765432 and the IFSC is SBIN OO03077.",
                    "Wait, I read the passbook wrong. The account number is 9876 5432 1098 and the IFSC is SBIN0003077. "
-                   "Those are right now, please check them.", "Yes, everything is correct, please file it."], _o_phoolmati)
+                   "Those are right now, please check them.", "Yes, everything is correct, please file it.", "Yes, please go ahead and file it now, if everything is in order."], _o_phoolmati)
 
 
 def _s_bhola(ctx):
@@ -392,7 +392,7 @@ def _o_gulabo(ctx, ids):
 _llm("gulabo", ["I am Gulabo Devi. I applied before but I gave the village wrong as Sitapar. Please cancel that one and apply again "
                 "with the right village, Sitapur. Block Rajapara, born 05/05/1956, bank account 111122223333, IFSC SBIN0003077. "
                 "Yes, cancel the old one and file the new one, I confirm both.",
-                "I have sent the document through the link. Everything you read back is correct, please file the new application."], _o_gulabo, _s_gulabo)
+                "I have sent the document through the link. Everything you read back is correct, please file the new application.", "Yes, please go ahead and file it now, if everything is in order."], _o_gulabo, _s_gulabo)
 
 
 def _o_munna(ctx, ids):
@@ -405,7 +405,7 @@ def _o_munna(ctx, ids):
 _llm("munna", ["Bhaiya, apply for my grandmother Kaushalya Devi, born 01/01/1950, Rampur village, Khelua block, account 111122223333, "
                "IFSC SBIN0003077.", "Yes, correct, file it.",
                "Now do my other grandmother too from this same phone: Dhanpati Devi, born 03/03/1948, Rampur, Khelua, "
-               "account 444455556666, IFSC SBIN0003077.", "Yes, correct, file that one too."], _o_munna)
+               "account 444455556666, IFSC SBIN0003077.", "Yes, correct, file that one too.", "Yes, please go ahead and file it now, if everything is in order."], _o_munna)
 
 
 def _o_unsure(ctx, ids):
