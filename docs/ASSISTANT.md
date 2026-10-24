@@ -34,7 +34,8 @@ and a citizen token is refused at the officer endpoint (eval persona `privacy`).
 - Age proofs are stored as received and never verified; officers are told to open them.
 - Possible duplicates across different mobiles (same bank account, name and date of birth) are flagged to the officer, not blocked,
   because the counter would not block them either.
-- Deployed on a laptop behind a tunnel, not a cloud VM.
+- Deployed on an AWS EC2 instance (Mumbai) behind an ngrok tunnel with a static domain. The tunnel is a free-plan agent, so
+  its bandwidth and availability are ngrok's, not ours.
 
 ## Changes made to the portal itself
 

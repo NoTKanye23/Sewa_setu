@@ -1,7 +1,8 @@
 # Submission checklist (deadline 31 Oct 2026, 11:59 PM IST; aim to submit by the night of 30 Oct)
 
 ## Running (must stay up until the window closes)
-- [ ] Laptop on charger, sleep masked, Docker enabled at boot, ngrok running (`~/start-sewasetu.sh` brings everything back)
+- [ ] The AWS VM is running (EC2, Mumbai). Docker and the ngrok service start at boot; containers restart automatically.
+- [ ] Do NOT run `~/start-sewasetu.sh` on the laptop any more: it would start a second ngrok on the same account
 - [ ] Public URL answers from a phone on mobile data: `https://striking-uncurled-uniformly.ngrok-free.dev/`
 - [ ] `/eval-dashboard` shows at least one scripted run and two Claude-driven runs
 
@@ -13,7 +14,7 @@
 - Officer login for reviewers: username `reviewer` + the password you set in `.env` (`OFFICERS=...,reviewer:<pw>`), all blocks
 - Note for reviewers: citizens sign in with a mobile number and an OTP; the OTP appears at `/__gateway/` on the portal
   (messages take 1 to 4 seconds). The first browser visit through ngrok may show a "Visit site" page: click through.
-- Note: the deployment is a laptop behind an ngrok tunnel, not a cloud VM (say so plainly).
+- Note: the deployment is an AWS EC2 VM (Mumbai) behind an ngrok static-domain tunnel (say so plainly).
 
 ## Repo
 - [ ] Create the private GitHub repo `sewasetu-assistant` and invite `harshnisar`

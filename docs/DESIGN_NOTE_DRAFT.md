@@ -35,4 +35,4 @@ that "a file arrived", never that it is valid. Officers see it labelled "not mac
 ## The one thing I would do differently with more time
 My citizens are fixed scripts, so they cannot react to what the assistant says. With more time I would play each persona with a second
 model that answers the assistant in character, and run every persona many times, so the pass rate measures conversations and not just
-rules. I would also move to a proper VM (mine is a laptop behind a tunnel) and add rate limits on the OTP step, which I found but left as portal behaviour.
+rules. I would also put a normal domain and load balancer in front of the VM instead of a free tunnel, and keep a second copy ready to take over. (The OTP step now has attempt limits, which I added to the portal itself after finding it had none.)
