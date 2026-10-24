@@ -110,7 +110,7 @@ async def play_llm(profile):
         lines = [l.format(**ids) for l in spec["lines"]]
         endpoint = CITIZEN_MCP if profile["role"] == "citizen" else OFFICER_MCP
         creds = ({"mobile": profile["mobile"]} if profile["role"] == "citizen"
-                 else {"username": profile["id"], "password": OFFICER_LOGINS[profile["id"]]})
+                 else {"username": profile.get("officer", profile["id"]), "password": OFFICER_LOGINS[profile.get("officer", profile["id"])]})
         ctx.transcript, usage = await claude_mode.play_with_claude(
             endpoint, profile["role"], creds, PORTAL_URL, SMS_URL, lines, PDF if spec["doc"] else "")
         spec["outcome"](ctx, ids)
@@ -141,7 +141,7 @@ async def play(profile):
         if profile["role"] == "citizen":
             cm = connect(CITIZEN_MCP, "citizen", PORTAL_URL, SMS_URL, {"mobile": profile["mobile"]})
         else:
-            user = profile["id"]
+            user = profile.get("officer", profile["id"])
             cm = connect(OFFICER_MCP, "officer", PORTAL_URL, SMS_URL,
                          {"username": user, "password": OFFICER_LOGINS[user]})
         async with cm as (raw, storage):

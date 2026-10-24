@@ -27,8 +27,6 @@ Person: "{line}"
 
 FOLLOW_UP = 'Person: "{line}"'
 
-DOC = ("The person's age proof document is a PDF. When you attach it with attach_age_proof, use filename "
-       "'age_proof.pdf' and this exact content_base64: {pdf}\n")
 
 
 def _parse(stdout):
@@ -75,7 +73,7 @@ async def play_with_claude(endpoint, scope, creds, portal_url, sms_url, lines, p
                                                    "headers": {"Authorization": "Bearer " + token}}}}, f)
         transcript, usage, session_id = [], {"turns": 0, "cost_usd": 0.0}, None
         for i, line in enumerate(lines):
-            prompt = (PROMPT.format(doc=DOC.format(pdf=pdf_b64) if pdf_b64 else "", line=line) if i == 0
+            prompt = (PROMPT.format(doc="", line=line) if i == 0
                       else FOLLOW_UP.format(line=line))
             transcript.append({"say": "PERSON: " + line})
             cmd = ["claude", "-p", prompt, "--model", MODEL, "--max-turns", str(MAX_TURNS),

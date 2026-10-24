@@ -1,6 +1,8 @@
 services:
   db:
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:5433:5432"     # lets evals/run_claude.sh on the host check the database
     image: postgres:15
     environment:
       POSTGRES_DB: sewasetu
