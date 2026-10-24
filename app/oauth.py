@@ -359,21 +359,18 @@ def login():
             if request.form.get("otp"):
                 mobile = req["pending_mobile"] or ""
                 code = request.form.get("otp", "").strip()
-                conn = portal.get_db()
-                cur = conn.cursor()
-                cur.execute("SELECT code, created_at FROM otps WHERE mobile = %s ORDER BY id DESC LIMIT 1",
-                            (mobile,))
-                row = cur.fetchone()
-                cur.close(); conn.close()
-                if row and secrets.compare_digest(row[0], code) and \
-                        (datetime.now() - row[1]).total_seconds() <= portal.OTP_VALIDITY_SECONDS:
+                result = portal.core.otp_verify(mobile, code)
+                if result == "ok":
                     _update_request(rid, subject="citizen:" + mobile)
                     return redirect(url_for("oauth.consent", rid=rid))
-                flash("Invalid or expired OTP.")
+                flash({"expired": "OTP expired. Please request a new one.",
+                       "locked": "Too many wrong attempts. Please wait a few minutes."}.get(result, "Invalid or expired OTP."))
             else:
                 mobile = request.form.get("mobile", "").strip()
                 if len(mobile) != 10 or not mobile.isdigit():
                     flash("Please enter a valid 10-digit mobile number.")
+                elif not portal.core.otp_request_allowed(mobile):
+                    flash("Too many OTP requests for this number. Please wait a few minutes.")
                 else:
                     code = "%06d" % secrets.randbelow(1000000)
                     conn = portal.get_db()

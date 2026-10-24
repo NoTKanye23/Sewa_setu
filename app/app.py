@@ -45,6 +45,12 @@ try:
 except Exception:
     pass
 
+@app.template_filter("ist")
+def _ist_filter(value):
+    """Times are stored on the server's clock; people read Indian Standard Time."""
+    return core.to_ist(value).strftime("%d/%m/%Y %I:%M %p IST") if isinstance(value, datetime) else value
+
+
 try:
     core.ensure_schema()
     core.seed_officers_from_env()
@@ -103,6 +109,9 @@ def apply():
         if len(mobile) != 10 or not mobile.isdigit():
             flash("Please enter a valid 10-digit mobile number.")
             return render_template("apply.html", captcha_q=make_captcha())
+        if not core.otp_request_allowed(mobile):
+            flash("Too many OTP requests for this number. Please wait a few minutes and try again.")
+            return render_template("apply.html", captcha_q=make_captcha())
         code = str(random.randint(100000, 999999))
         conn = get_db()
         cur = conn.cursor()
@@ -130,21 +139,17 @@ def verify():
         return redirect(url_for("apply"))
     if request.method == "POST":
         code = request.form.get("otp", "").strip()
-        conn = get_db()
-        cur = conn.cursor()
-        cur.execute("SELECT code, created_at FROM otps WHERE mobile = %s "
-                    "ORDER BY id DESC LIMIT 1", (mobile,))
-        row = cur.fetchone()
-        cur.close(); conn.close()
-        if row and row[0] == code:
-            age = (datetime.now() - row[1]).total_seconds()
-            if age > OTP_VALIDITY_SECONDS:
-                app.logger.warning("otp expired mobile=%s age=%ds" % (mobile, int(age)))
-                flash("OTP expired. Please request a new OTP.")
-                return redirect(url_for("apply"))
+        result = core.otp_verify(mobile, code)
+        if result == "ok":
             session["verified_mobile"] = mobile
             return redirect(url_for("form_step", step=1))
-        flash("Invalid OTP.")
+        if result == "expired":
+            flash("OTP expired. Please request a new OTP.")
+            return redirect(url_for("apply"))
+        if result == "locked":
+            flash("Too many wrong attempts. Please wait a few minutes before trying again.")
+        else:
+            flash("Invalid OTP.")
     return render_template("verify.html", mobile=mobile)
 
 

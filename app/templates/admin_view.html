@@ -14,8 +14,8 @@
   <tr><th>IFSC</th><td>{{ a[9] }}</td></tr>
   <tr><th>Document</th><td>{{ a[10] or '-' }}</td></tr>
   <tr><th>Status</th><td><b>{{ a[11] }}</b></td></tr>
-  <tr><th>Submitted</th><td>{{ a[12] }}</td></tr>
-  <tr><th>Decided</th><td>{{ a[13] or '-' }} {% if a[14] %}by {{ a[14] }}{% endif %}</td></tr>
+  <tr><th>Submitted</th><td>{{ a[12]|ist }}</td></tr>
+  <tr><th>Decided</th><td>{{ (a[13]|ist) if a[13] else '-' }} {% if a[14] %}by {{ a[14] }}{% endif %}</td></tr>
 </table>
 {% if a[11] == 'PENDING' %}
 <h3>Decision</h3>
@@ -34,7 +34,7 @@
 <table class="tbl" style="max-width:640px">
 <tr><th>When</th><th>Action</th><th>By</th><th>Note</th></tr>
 {% for at, action, actor, note in audit %}
-<tr><td>{{ at }}</td><td>{{ action }}</td><td>{{ actor }}</td><td>{{ note or '' }}</td></tr>
+<tr><td>{{ at|ist }}</td><td>{{ action }}</td><td>{{ actor }}</td><td>{{ note or '' }}</td></tr>
 {% endfor %}
 </table>
 {% else %}

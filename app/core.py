@@ -116,6 +116,11 @@ CREATE TABLE IF NOT EXISTS officers (
     block         VARCHAR(50),            -- NULL = all blocks
     active        BOOLEAN DEFAULT TRUE
 );
+CREATE TABLE IF NOT EXISTS otp_failures (          -- wrong OTP guesses, for lockout
+    mobile VARCHAR(15),
+    at     TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_otp_failures_mobile ON otp_failures(mobile, at);
 CREATE TABLE IF NOT EXISTS assistant_documents (   -- age proof received but not yet submitted
     mobile      VARCHAR(15) PRIMARY KEY,
     doc_path    VARCHAR(200),
@@ -385,6 +390,49 @@ def pending_document(mobile):
 
 
 UPLOAD_LINK_TTL = 20 * 60
+
+# OTP abuse limits, shared by the web form and the assistants' sign-in
+OTP_MAX_WRONG = 5            # wrong guesses allowed ...
+OTP_LOCK_SECONDS = 600       # ... within this window, then the number is locked until it passes
+OTP_MAX_REQUESTS = 10        # OTPs that may be sent to one number within the same window
+
+
+def otp_request_allowed(mobile):
+    """False when too many OTPs were already sent to this number recently."""
+    ensure_schema()
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT count(*) FROM otps WHERE mobile = %s AND created_at > now() - make_interval(secs => %s)",
+                (mobile, OTP_LOCK_SECONDS))
+    n = cur.fetchone()[0]
+    cur.close(); conn.close()
+    return n < OTP_MAX_REQUESTS
+
+
+def otp_verify(mobile, code):
+    """Check an OTP. Returns 'ok', 'invalid', 'expired' or 'locked'. A correct code works once; too many
+    wrong guesses lock the number for a while, even for the right code."""
+    ensure_schema()
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT count(*) FROM otp_failures WHERE mobile = %s AND at > now() - make_interval(secs => %s)",
+                    (mobile, OTP_LOCK_SECONDS))
+        if cur.fetchone()[0] >= OTP_MAX_WRONG:
+            return "locked"
+        cur.execute("SELECT code, created_at FROM otps WHERE mobile = %s ORDER BY id DESC LIMIT 1", (mobile,))
+        row = cur.fetchone()
+        if row and hmac.compare_digest(row[0] or "", code or ""):
+            if (datetime.now() - row[1]).total_seconds() > OTP_VALIDITY_SECONDS:
+                return "expired"
+            cur.execute("DELETE FROM otps WHERE mobile = %s", (mobile,))          # single use
+            cur.execute("DELETE FROM otp_failures WHERE mobile = %s", (mobile,))
+            return "ok"
+        cur.execute("INSERT INTO otp_failures (mobile, at) VALUES (%s, now())", (mobile,))
+        return "invalid"
+    finally:
+        conn.commit()
+        cur.close(); conn.close()
 
 
 def _upload_secret():

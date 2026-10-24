@@ -26,10 +26,22 @@ and a citizen token is refused at the officer endpoint (eval persona `privacy`).
 
 ## Known limits
 
-- No attempt limit on the portal's OTP check (portal behaviour, not changed).
 - Revoking a sign-in ends the refresh token; an already-issued access token lives up to 20/30 minutes.
 - Shared phones: one mobile can hold one active application, as at the counter; the assistant explains and refuses.
-- Stored times are server-local; every time shown to a person is converted to IST.
+- Stored times are the server's local clock (UTC in Docker). Every page and tool shows IST; the database itself is not converted.
+- The scheme-window and age rules are tested at their boundaries in `tests/test_core.py` (fixed clock), not through a live persona,
+  because the real clock cannot be moved.
+- Age proofs are stored as received and never verified; officers are told to open them.
+- Possible duplicates across different mobiles (same bank account, name and date of birth) are flagged to the officer, not blocked,
+  because the counter would not block them either.
+- Deployed on a laptop behind a tunnel, not a cloud VM.
+
+## Changes made to the portal itself
+
+- Wrong-OTP lockout (5 wrong guesses, then 10 minutes), single-use OTPs and a cap on OTP requests per number, for both the web form
+  and the assistants' sign-in. No change to who is eligible.
+- Admin and status pages show IST.
+- Upload filenames are sanitised (the form stored `../` names as given).
 
 ## Running the evals
 

@@ -11,8 +11,8 @@
   <tr><th>Bank Account</th><td>{{ a[6] }}</td></tr>
   <tr><th>IFSC</th><td>{{ a[7] }}</td></tr>
   <tr><th>Status</th><td><b>{{ a[8] }}</b></td></tr>
-  <tr><th>Submitted</th><td>{{ a[9] }}</td></tr>
-  <tr><th>Decided</th><td>{{ a[10] or '-' }}</td></tr>
+  <tr><th>Submitted</th><td>{{ a[9]|ist }}</td></tr>
+  <tr><th>Decided</th><td>{{ (a[10]|ist) if a[10] else '-' }}</td></tr>
 </table>
 <p><a href="/ack/{{ app_id }}.pdf">Download Acknowledgment (PDF)</a> &middot;
 <a href="/status/connections">Connected applications</a></p>
