@@ -21,6 +21,9 @@ services:
     environment:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me-before-deploying}
+      # signs session cookies and upload links: set a long random value in .env (openssl rand -hex 32)
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env (openssl rand -hex 32)}
+      UPLOAD_LINK_SECRET: ${UPLOAD_LINK_SECRET:?set UPLOAD_LINK_SECRET in .env (openssl rand -hex 32)}
       # per-officer logins for the officer assistant: "name:password:Block,name2:password2"
       OFFICERS: ${OFFICERS:-}
       # the address at which people reach this portal; stamped into sign-in tokens and
@@ -38,6 +41,7 @@ services:
     build: {context: ., dockerfile: mcp_service/Dockerfile}
     command: ["python", "citizen_server.py"]
     environment: &mcp_env
+      UPLOAD_LINK_SECRET: ${UPLOAD_LINK_SECRET:?set UPLOAD_LINK_SECRET in .env (openssl rand -hex 32)}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8000}
       PORTAL_INTERNAL_URL: http://app:8000
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}

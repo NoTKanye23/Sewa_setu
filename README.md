@@ -50,7 +50,8 @@ reject pending ones, and see the audit trail per application.
 ## Assistant layer
 
 Two MCP servers sit in front of the portal (`/mcp/citizen`, `/mcp/officer`), with persona evals at
-`/eval-dashboard`. See [docs/ASSISTANT.md](docs/ASSISTANT.md). Extra environment: `OFFICERS="name:password:Block,..."`
+`/eval-dashboard`. See [docs/ASSISTANT.md](docs/ASSISTANT.md). Required in `.env`: `SECRET_KEY` and `UPLOAD_LINK_SECRET` (long random values, e.g. `openssl rand -hex 32`; the stack refuses to
+start without them, because the handout's default key is public). Extra environment: `OFFICERS="name:password:Block,..."`
 for per-officer logins and `SITE_ADDRESS=<domain>` for automatic HTTPS.
 
 ## Layout
