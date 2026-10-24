@@ -51,11 +51,24 @@ def _ist_filter(value):
     return core.to_ist(value).strftime("%d/%m/%Y %I:%M %p IST") if isinstance(value, datetime) else value
 
 
-try:
-    core.ensure_schema()
-    core.seed_officers_from_env()
-except Exception as e:   # database not up yet; the first request that needs it will retry
-    app.logger.warning("schema bootstrap deferred: %s" % e)
+_bootstrap_state = {"done": False}
+
+
+def _bootstrap():
+    """Create the assistant tables and the officer accounts. The database may still be loading its seed
+    when the app first starts, so this retries on the next request until it succeeds (it is idempotent)."""
+    if _bootstrap_state["done"]:
+        return
+    try:
+        core.ensure_schema()
+        core.seed_officers_from_env()
+        _bootstrap_state["done"] = True
+    except Exception as e:
+        app.logger.warning("bootstrap deferred: %s" % e)
+
+
+_bootstrap()
+app.before_request(_bootstrap)
 
 
 # ---------------------------------------------------------------------------
