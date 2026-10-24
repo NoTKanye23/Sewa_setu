@@ -134,7 +134,9 @@ def get_age_proof_upload_link() -> dict:
     Prefer this over attach_age_proof. Afterwards call check_age_proof_status."""
     token = core.make_upload_token(current().identity)
     return {"ok": True, "upload_link": "%s/upload-proof/%s" % (_BASE, token), "valid_for_minutes": core.UPLOAD_LINK_TTL // 60,
-            "tell_the_person": "Open this link, choose the photo or PDF of your age proof, and press Send. Then come back here."}
+            "tell_the_person": "Open this link, choose the photo or PDF of your age proof, and press Send. Then come back here.",
+            "if_a_real_file_is_on_this_computer": "A client with a shell can send the person's real file with: curl -F 'document=@/path/to/file' <upload_link>  "
+                                                  "(never create a file to stand in for a document the person does not have)."}
 
 
 @mcp.tool()
